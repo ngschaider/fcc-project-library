@@ -11,28 +11,24 @@
 var expect = require('chai').expect;
 var MongoClient = require('mongodb').MongoClient;
 var ObjectId = require('mongodb').ObjectId;
-const MONGODB_CONNECTION_STRING = process.env.DB;
+const MONGODB_CONNECTION_STRING = process.env.MONGO_URI;
 //Example connection: MongoClient.connect(MONGODB_CONNECTION_STRING, function(err, db) {});
 
+
+
 module.exports = function (app) {
-  console.log("connecting to mongo database");
-  MongoClient.connect(process.env.MONGO_URI, {}, (err, client) => {
-    console.log("...done");
+  MongoClient.connect(MONGODB_CONNECTION_STRING, {}, (err, client) => {
     if(err) throw err;
 
-    console.log("...successfully");
     const db = client.db("personallibrary").collection("books");
-    console.log("registering routes");
     app.route('/api/books')
       .get(function (req, res){
-        console.log("got request");
         db.find({}).toArray((err, books) => {
           if(err) throw err;
-          console.log("found books");
 
           for(var i = 0; i < books.length; i++) {
-            books.commentcount = books.comments.length;
-            delete books.comments;
+            books[i].commentcount = books[i].comments.length;
+            delete books[i].comments;
           }
 
           res.json(books);
@@ -46,6 +42,7 @@ module.exports = function (app) {
 
         if(!title) {
           res.send("missing required field");
+          return;
         }
 
         db.insertOne({title: title, comments: []}, {new: true}, (err, dbRes) => {
@@ -74,19 +71,29 @@ module.exports = function (app) {
 
     app.route('/api/books/:id')
       .get(function (req, res){
-        const bookId = req.params.id;
+        if(!req.params.id.match(/[a-zA-Z0-9]{24}/)) {
+          res.send("no book exists");
+          return;
+        }
+        const bookId = new ObjectId(req.params.id);
+        
 
         db.findOne({_id: bookId}, {}, (err, book) => {
           if(err) throw err;
 
+          if(!book) {
+            console.log("!!!no book exists!!!");
+            res.send("no book exists");
+            return;
+          }
           res.json(book);
         });
         //json res format: {"_id": bookid, "title": book_title, "comments": [comment,comment,...]}
       })
       
       .post(function(req, res){
-        const bookId = req.params.id;
-        const comment = req.body.comment;
+        const bookId = new ObjectId(req.params.id);
+        const comment = req.body;
 
         db.findOneAndUpdate({_id: bookId}, {
           $push: {
@@ -94,14 +101,13 @@ module.exports = function (app) {
           },
         }, {returnOriginal: false}, (err, dbRes) => {
           if(err) throw err;
-
-          res.json(dbRes.result.value);
+          res.json(dbRes.value);
         });
         //json res format same as .get
       })
       
       .delete(function(req, res){
-        var bookId = req.params.id;
+        const bookId = req.params.id;
         db.deleteOne({_id: id}, {}, (err, res) => {
           if(err) throw err;
 
@@ -112,7 +118,5 @@ module.exports = function (app) {
 
     console.log("...done");
   });
-
-  
   
 };

@@ -11,7 +11,7 @@ var runner            = require('./test-runner');
 var app = express();
 
 // Simple logger
-/*app.use((req, res, next) => {
+app.use((req, res, next) => {
   console.log(req.method + " - " + req.path);
   next();
 });
@@ -20,13 +20,13 @@ var app = express();
 app.use((req, res, next) => {
   res.set('Cache-Control', 'no-store')
   next()
-})
+});
 
 // Setting X-Powered-By Header
 app.use((req, res, next) => {
   res.setHeader("X-Powered-By", "PHP 4.2.0");
   next();
-});*/
+});
 
 app.use('/public', express.static(process.cwd() + '/public'));
 
@@ -34,7 +34,6 @@ app.use(cors({origin: '*'})); //USED FOR FCC TESTING PURPOSES ONLY!
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
 
 //Index page (static HTML)
 app.route('/')
@@ -47,14 +46,18 @@ app.route('/')
 fccTestingRoutes(app);
 
 //Routing for API 
-apiRoutes(app);  
+apiRoutes(app); 
 
 //404 Not Found Middleware
-app.use(function(req, res, next) {
-  res.status(404)
-    .type('text')
-    .send('Not Found');
-});
+// Add this later so all routes are added before this one
+setTimeout(() => {
+  app.use(function(req, res, next) {
+    res.status(404)
+      .type('text')
+      .send('Not Found');
+  });
+}, 3000);
+
 
 //Start our server and tests!
 const listener = app.listen(process.env.PORT || 3000, function () {
@@ -69,8 +72,9 @@ const listener = app.listen(process.env.PORT || 3000, function () {
           console.log('Tests are not valid:');
           console.log(error);
       }
-    }, 1500);
+    }, 3500);
   }
 });
+
 
 module.exports = app; //for unit/functional testing

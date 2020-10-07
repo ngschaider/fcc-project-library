@@ -13,6 +13,8 @@ var server = require('../server');
 
 const {ObjectID} = require("mongodb");
 
+var bookId;
+
 chai.use(chaiHttp);
 
 suite('Functional Tests', function() {
@@ -48,8 +50,8 @@ suite('Functional Tests', function() {
           .send({title: "Neues Testament"})
           .end((err, res) => {
             assert.equal(res.status, 200);
-            assert.property(res.body._id, "Added books should return an _id");
-            assert.equals(res.body.title, "Neues Testament");
+            assert.property(res.body, "_id", "Added books should return an _id");
+            assert.equal(res.body.title, "Neues Testament");
             bookId = ObjectID(res.body._id);
             done();
           });
@@ -58,7 +60,6 @@ suite('Functional Tests', function() {
       test('Test POST /api/books with no title given', function(done) {
         chai.request(server)
           .post("/api/books")
-          .send({title: "Neues Testament"})
           .end((err, res) => {
             assert.equal(res.status, 200);
             assert.equal(res.text, "missing required field");
@@ -94,7 +95,7 @@ suite('Functional Tests', function() {
           .get("/api/books/1337")
           .end((err, res) => {
             assert.equal(res.status, 200);
-            assert.text("no book exists");
+            assert.equal(res.text, "no book exists");
             done();
           });
       });
@@ -106,7 +107,7 @@ suite('Functional Tests', function() {
             assert.equal(res.status, 200);
             assert.property(res.body, "title");
             assert.property(res.body, "_id");
-            assert.property(res.body, "comment");
+            assert.property(res.body, "comments");
             assert.isArray(res.body.comments);
             done();
           });
@@ -125,7 +126,7 @@ suite('Functional Tests', function() {
             assert.equal(res.status, 200);
             assert.property(res.body, "title");
             assert.property(res.body, "_id");
-            assert.property(res.body, "comment");
+            assert.property(res.body, "comments");
             assert.isArray(res.body.comments);
             assert.isAtLeast(res.body.comments.length, 1);
             done();
